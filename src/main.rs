@@ -46,66 +46,150 @@ pub enum InstructionType {
 
 #[derive(Debug)]
 pub enum OpcodeImmFunctions {
+    value = 0b0010011,
+
     // Adds imm to value in register rs1
-    ADDI,
+    ADDI = 0b000,
 
     // Puts 1 in register rd if value in rs1 is less than the immediate
     // else puts 0
-    SLTI,
+    SLTI = 0b010,
 
     // Same as SLTI, but comparison is unsigned
-    SLTIU,
+    SLTIU = 0b011,
 
     // rd = rs1 AND imm
-    ANDI,
+    ANDI = 0b111,
 
     // rd = rs1 OR imm
-    ORI,
+    ORI = 0b110,
 
     // rd = rs1 XOR imm
-    XORI,
+    XORI = 0b100,
 
     // Shifts rs1 by the amount on the lower 5 bits of imm
-    // SLLI = shift left, SRLI, shift right,
+    // SLLI = shift left, 
+    SLLI = 0b001,
+
+    // SRLI, shift right,
     // SRAI = arithmetical right shift (preserves sign bit)
-    SLLI,
-    SRLI,
-    SRAI,
+    // The higher 7 bits of imm determine if we have a SRLI or SRAI
+    // SRLI is 0, SRAI is 0b100000
+    SRLI_SRAI = 0b101
 }
 
 #[derive(Debug)]
 pub enum OpcodeRegFunctions {
+    value = 0b0110011,
 
     // Adds rs1 to rs2, puts result into rd
-    ADD,
+    // Subtracts rs2 from rs1
+    // The higher bits of rs2 determine if we have a ADD or SUB
+    // ADD is 0, SUB is 0b100000
+    ADD_SUB = 0b000,
 
     // Same as SLTI, but compares rs1 with rs2 instead of rs1 and imm
-    SLT,
-    SLTU,
+    SLT = 0b010,
+    SLTU = 0b011,
 
     // rd = rs1 AND rs2
-    AND,
+    AND = 0b111,
 
     // rd = rs1 OR rs2
-    OR,
+    OR = 0b110,
 
     // rd = rs1 XOR rs2
-    XOR,
+    XOR = 0b100,
 
     // SLL = same as SLLI, but shifts rs1 by lower 5 bits of rs2
-    SLL,
+    SLL = 0b001,
 
     // Same as SRLI, but shifts right by lower 5 bits of rs2
-    SRL,
-
-    // Subtracts rs2 from rs1
-    SUB,
-
     // Same as SRAI but... you understood.
-    SRA,
+    // The higher bits of rs2 determine if we have a SRL or SRA
+    // SRL is 0, SRA is 0b100000
+    SRL_SRA = 0b101
+
 
 }
 
+// All branch instructions, when branching, will get the
+// 12-bit offset from the immediate, sign extend it, add
+// to pc and jump to it.
+#[derive(Debug)]
+pub enum BranchFunctions {
+    value = 0b1100011,
+
+    // Branch if rs1 and rs2 are equal.
+    BEQ = 0,
+
+    // Branch if rs1 and rs2 are different
+    BNE = 0b001,
+
+    // Branch if rs1 < rs2, signed compare
+    BLT = 0b100,
+
+    // Branch if rs1 < rs2, unsigned compare
+    BLTU = 0b110,
+
+    // Branch if rs1 >= rs2, signed cmp
+    BGE = 0b101,
+
+    // Branch if rs1 >= rs2, unsigned cmp
+    BGEU = 0b111,
+
+}
+
+#[derive(Debug)]
+pub enum FreeOpcodes {
+    
+    /**** I-type ****/
+    // Jumps to the address specified by rs1 + imm, imm being
+    // signed. The address least significant bit is set to
+    // zero before jumping to it. rd becomes the address
+    // of the instruction following the jump.
+    // This generates a instruction address misaligned 
+    // exception of the instruction is not aligned to a
+    // 4-byte boundary
+    JALR = 0b1100111,
+
+    /**** S-type ****/
+    
+    // Stores the value in rs2 into memory address (rs1 + offset)
+    // funct3 stores the store width (0=byte, 1=halfword, 2=word)
+    // The byte, halfword and word store mnemonics are SB, SH and SW
+    STORE = 0b0100011,
+
+   /**** U-type ****/
+
+    // Loads the immediate value in the top 20 bits of rd,
+    // and fills the lower 12 bits with zeros
+    // LUI means "load upper immediate"
+    LUI = 0b0110111,
+
+    // Forms a 32 bit offset from the 20-bit immediate,
+    // fills the lower 12 bits with zeroes, adds to PC
+    // and puts the result in rd.
+    // AUIPC means "add upper immediate to PC"
+    AUIPC = 0b0010111,
+
+
+    /**** J-type ****/
+    // Jumps to the offset specified by the immediate
+    // (in reality, jumps to pc + offset). The offset is sign
+    // extended. Stores the address of the following instruction
+    // (pc+4) into rd. Usually rd is x1.
+    // Unconditional jumps (j <offset>) are encoded as "jal x0, <offset>"
+    JAL = 0b1101111,
+
+    // Loads a value from memory address (rs1 + offset) to rd
+    // funct3 stores the load width (0=byte, 1=word, 2=dword)
+    // The MSB means that the load is unsigned.
+    // The byte, halfword and word load mnemonics are LB, LH and LW, the unsigned
+    // variants are LBU, LHU and LWU
+    LOAD = 0b0000011,
+
+}
 
 /*
  * The opcodes. 
@@ -124,69 +208,10 @@ pub enum Opcode {
     /**** I-type ****/
     OP_IMM(OpcodeImmFunctions),
 
-    // Jumps to the address specified by rs1 + imm, imm being
-    // signed. The address least significant bit is set to
-    // zero before jumping to it. rd becomes the address
-    // of the instruction following the jump.
-    // This generates a instruction address misaligned 
-    // exception of the instruction is not aligned to a
-    // 4-byte boundary
-    JALR,
-
-    /**** S-type ****/
-    
-    // Stores the value in rs2 into memory address (rs1 + offset)
-    STORE,
-
-
     /**** B-type ****/
-    // All branch instructions, when branching, will get the
-    // 12-bit offset from the immediate, sign extend it, add
-    // to pc and jump to it.
+    BRANCH(BranchFunctions),
 
-    // Branch if rs1 and rs2 are equal.
-    BEQ,
-
-    // Branch if rs1 and rs2 are different
-    BNE,
-
-    // Branch if rs1 < rs2, signed compare
-    BLT,
-
-    // Branch if rs1 < rs2, unsigned compare
-    BLTU,
-
-    // Branch if rs1 >= rs2, signed cmp
-    BGE,
-
-    // Branch if rs1 >= rs2, unsigned cmp
-    BGEU,
-
-    /**** U-type ****/
-
-    // Loads the immediate value in the top 20 bits of rd,
-    // and fills the lower 12 bits with zeros
-    // LUI means "load upper immediate"
-    LUI,
-
-    // Forms a 32 bit offset from the 20-bit immediate,
-    // fills the lower 12 bits with zeroes, adds to PC
-    // and puts the result in rd.
-    // AUIPC means "add upper immediate to PC"
-    AUIPC,
-
-
-    /**** J-type ****/
-    // Jumps to the offset specified by the immediate
-    // (in reality, jumps to pc + offset). The offset is sign
-    // extended. Stores the address of the following instruction
-    // (pc+4) into rd. Usually rd is x1.
-    // Unconditional jumps (j <offset>) are encoded as "jal x0, <offset>"
-    JAL,
-
-    // Loads a value from memory address (rs1 + offset) to rd
-    LOAD,
-
+    FREE_OPS(FreeOpcodes)
 }
 
  /*
