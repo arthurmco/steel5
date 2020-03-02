@@ -9,6 +9,9 @@ For now, it does not run any instruction.
 
 Check the docs: https://github.com/riscv/riscv-isa-manual/releases/tag/draft-20200229-27b40fb
 
+Some useful links:
+ - https://github.com/rv8-io/rv8/blob/master/doc/pdf/riscv-instructions.pdf
+
 ## Objectives
 
 The final objective is to run Linux and NetBSD. I think both have risc-v support.
