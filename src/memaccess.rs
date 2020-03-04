@@ -79,6 +79,38 @@ impl Memory {
         }
     }
 
+    /// Write 2 bytes, 16 bits, to an address
+    pub fn write16(&mut self, addr: u32, data: u16) {
+        match self.find_memory_area_mut(addr) {
+            Some(area) => {
+                let offset = addr - area.start;
+
+                let bytes: [u16; 2] = [data & 0xff, (data >> 8) & 0xff];
+
+                self.write8(addr + 0, bytes[0] as u8);
+                self.write8(addr + 1, bytes[1] as u8);
+            }
+            None => panic!("Cannot find suitable memory area for address {:x}", addr),
+        }
+    }
+
+    /// Read 2 bytes, 16 bits, from an address
+    pub fn read16(&self, addr: u32) -> u16 {
+        match self.find_memory_area(addr) {
+            Some(area) => {
+                let offset = addr - area.start;
+
+                let bytes: Vec<u16> = vec![0, 1]
+                    .iter()
+                    .map(|i| area.read8(offset + i) as u16)
+                    .collect();
+                let ret = bytes[0] | (bytes[1] << 8);
+                ret
+            }
+            None => panic!("Cannot find suitable memory area for address {:x}", addr),
+        }
+    }
+
     /// Read 4 bytes, 32 bits, from an address
     /// Good for reading instructions, since they will usually have 4 bytes
     pub fn read32(&self, addr: u32) -> u32 {

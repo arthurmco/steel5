@@ -4,7 +4,6 @@ use memaccess::Memory;
 mod cpu;
 use cpu::*;
 
-
 fn main() {
     println!("Hello, world!");
 
@@ -21,7 +20,7 @@ fn main() {
     println!("{:?}", Instruction::new(0x0400026f)); //jal x4, #64
     println!("{:?}", Instruction::new(0x02419063)); //bne r3, r4, #32
 
-    let cpu = CPUState::new(0x300000);
+    let mut cpu = CPUState::new(100);
     let mut memory = Memory::new();
 
     memory.write8(0, 1);
@@ -34,12 +33,28 @@ fn main() {
     memory.write8(7, 0x23);
     memory.write8(8, 0x24);
 
-    println!("{:?}", cpu);
+    println!("{:x?}", cpu);
     println!("{:?}", memory);
     println!("{:x}", memory.read32(0)); // needs to be 0x04030201
     println!("{:x}", memory.read32(4)); // needs to be 0x23222120
+    println!("{:x}", memory.read16(0)); // needs to be 0x0201
+    println!("{:x}", memory.read16(2)); // needs to be 0x0403
     println!("{:x}", memory.read8(8)); // needs to be 0x24
 
+    memory.write32(64, 0x00512a03);
+
     memory.write32(100, 0xfff28413);
+    memory.write32(104, 0xfff28413);
+    memory.write32(108, 0x02419063);
+    memory.write32(112, 0x0400026f);
     println!("{:?}", Instruction::new(memory.read32(100))); //addi s0 t0 -1
+
+    cpu.run(&mut memory);
+    cpu.run(&mut memory);
+    cpu.run(&mut memory);
+    cpu.run(&mut memory);
+    cpu.run(&mut memory);
+
+    println!("{:x?}", cpu);
+    assert_eq!(cpu.x[20], 0x24232221);
 }
