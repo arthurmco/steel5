@@ -20,6 +20,16 @@ fn main() {
     println!("{:?}", Instruction::new(0x0400026f)); //jal x4, #64
     println!("{:?}", Instruction::new(0x02419063)); //bne r3, r4, #32
 
+    println!("{}", Instruction::new(0xFFF28413).to_string()); //addi s0 t0 -1
+    println!("{}", Instruction::new(0x007302b3).to_string()); //add x5, x6, x7
+    println!("{}", Instruction::new(0x00650333).to_string()); //add x6, x10, x6
+    println!("{}", Instruction::new(0x00512a03).to_string()); //lw s4 5(sp)
+    println!("{}", Instruction::new(0x60000113).to_string()); //addi sp, 0, 1536
+    println!("{}", Instruction::new(0x00000013).to_string()); //addi x0, x0, 0 aka NOP
+    println!("{}", Instruction::new(0x0400026f).to_string()); //jal x4, #64
+    println!("{}", Instruction::new(0x0400026f).to_string()); //jal x4, #64
+    println!("{}", Instruction::new(0x02419063).to_string()); //bne r3, r4, #32
+
     let mut cpu = CPUState::new(100);
     let mut memory = Memory::new();
 

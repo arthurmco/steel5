@@ -1,7 +1,7 @@
 use crate::memaccess::Memory;
 
-use crate::opcodes::*;
 use crate::instruction::Instruction;
+use crate::opcodes::*;
 
 /*
  * Represents a CPU state
@@ -259,16 +259,16 @@ impl CPUState {
                     {
                         let addr = ((self.x[rs1 as usize] as i32) + imm) as u32;
 
-                        let signed = (val & 0x80000000) == 0x80000000;
+                        let signed = (funct3 & 0x4) > 0;
 
-                        let sval = match funct3 & 0xf {
+                        let sval = match funct3 & 0x3 {
                             0 => mem.read8(addr) as i32,
                             1 => mem.read16(addr) as i32,
                             2 => mem.read32(addr) as i32,
                             _ => panic!("Unknown read size {} for LOAD", funct3),
                         };
 
-                        let uval = match funct3 & 0xf {
+                        let uval = match funct3 & 0x3 {
                             0 => mem.read8(addr) as u32,
                             1 => mem.read16(addr) as u32,
                             2 => mem.read32(addr) as u32,

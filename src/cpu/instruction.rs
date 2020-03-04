@@ -1,5 +1,6 @@
 use crate::opcodes::*;
 use num_traits::{FromPrimitive, ToPrimitive};
+use std::fmt;
 
 /*
  * A RISC-V instruction
@@ -225,5 +226,226 @@ impl Instruction {
             opcode,
             data: instruction_type,
         }
+    }
+}
+
+/**
+ * Implement to string to show a nicer way of displaying the instruction
+ *
+ * Like "add x5, x4, x2" instead of that weird debugging thing
+ * This is more useful for debugging
+ */
+impl ToString for Instruction {
+    fn to_string(&self) -> String {
+        let instruction_name = match self.opcode {
+            Opcode::OP(v) => match v {
+                OpcodeRegFunctions::ADD_SUB => {
+                    if let InstructionType::RInst {
+                        rd: _,
+                        funct3: _,
+                        rs1: _,
+                        rs2: _,
+                        funct7,
+                    } = self.data
+                    {
+                        match funct7 {
+                            0 => "add",
+                            0x100000 => "sub",
+                            _ => "???",
+                        }
+                    } else {
+                        "???"
+                    }
+                }
+                OpcodeRegFunctions::SLTU => "sltu",
+                OpcodeRegFunctions::SLT => "slt",
+                OpcodeRegFunctions::AND => "and",
+                OpcodeRegFunctions::OR => "or",
+                OpcodeRegFunctions::XOR => "xor",
+                OpcodeRegFunctions::SLL => "sll",
+                OpcodeRegFunctions::SRL_SRA => {
+                    if let InstructionType::RInst {
+                        rd: _,
+                        funct3: _,
+                        rs1: _,
+                        rs2: _,
+                        funct7,
+                    } = self.data
+                    {
+                        match funct7 {
+                            0 => "srl",
+                            0x100000 => "sra",
+                            _ => "???",
+                        }
+                    } else {
+                        "???"
+                    }
+                }
+                _ => "???",
+            },
+            Opcode::OP_IMM(v) => match v {
+                OpcodeImmFunctions::ADDI => "addi",
+                OpcodeImmFunctions::SLTIU => "sltiu",
+                OpcodeImmFunctions::SLTI => "slti",
+                OpcodeImmFunctions::ANDI => "andi",
+                OpcodeImmFunctions::ORI => "ori",
+                OpcodeImmFunctions::XORI => "xori",
+                OpcodeImmFunctions::SLLI => "slli",
+                OpcodeImmFunctions::SRLI_SRAI => {
+                    if let InstructionType::RInst {
+                        rd: _,
+                        funct3: _,
+                        rs1: _,
+                        rs2: _,
+                        funct7,
+                    } = self.data
+                    {
+                        match funct7 {
+                            0 => "srli",
+                            0x100000 => "srai",
+                            _ => "???",
+                        }
+                    } else {
+                        "???"
+                    }
+                }
+                _ => "???",
+            },
+            Opcode::BRANCH(v) => match v {
+                BranchFunctions::BEQ => "beq",
+                BranchFunctions::BNE => "bne",
+                BranchFunctions::BLT => "blt",
+                BranchFunctions::BLTU => "bltu",
+                BranchFunctions::BGE => "bge",
+                BranchFunctions::BGEU => "bgeu",
+                _ => "b???"
+            },
+            Opcode::FREE_OPS(v) => match v {
+                FreeOpcodes::JALR => "jarl",
+                FreeOpcodes::JAL => "jal",
+                FreeOpcodes::LUI => "lui",
+                FreeOpcodes::AUIPC => "auipc",
+                FreeOpcodes::LOAD => {
+                    if let InstructionType::IInst {
+                        rd: _,
+                        funct3,
+                        rs1: _,
+                        imm: _,
+                    } = self.data
+                    {
+                        let signed = funct3 >= 0x4;
+                        match funct3 & 0x3 {
+                            0 => {
+                                if signed {
+                                    "lb"
+                                } else {
+                                    "lbu"
+                                }
+                            }
+                            1 => {
+                                if signed {
+                                    "lh"
+                                } else {
+                                    "lhu"
+                                }
+                            }
+                            2 => {
+                                if signed {
+                                    "lw"
+                                } else {
+                                    "lwu"
+                                }
+                            }
+                            _ => {
+                                if signed {
+                                    "l?"
+                                } else {
+                                    "l?u"
+                                }
+                            }
+                        }
+                    } else {
+                        "???"
+                    }
+                }
+                FreeOpcodes::STORE => {
+                    if let InstructionType::SInst {
+                        rd: _,
+                        funct3,
+                        rs1: _,
+                        rs2: _,
+                        imm: _,
+                    } = self.data
+                    {
+                        let signed = funct3 >= 0x4;
+                        match funct3 & 0x3 {
+                            0 => {
+                                if signed {
+                                    "sb"
+                                } else {
+                                    "sbu"
+                                }
+                            }
+                            1 => {
+                                if signed {
+                                    "sh"
+                                } else {
+                                    "shu"
+                                }
+                            }
+                            2 => {
+                                if signed {
+                                    "sw"
+                                } else {
+                                    "swu"
+                                }
+                            }
+                            _ => {
+                                if signed {
+                                    "s?"
+                                } else {
+                                    "s?u"
+                                }
+                            }
+                        }
+                    } else {
+                        "???"
+                    }
+                }
+            },
+        };
+
+        let instruction_params = match self.data {
+            InstructionType::RInst {
+                rd,
+                funct3: _,
+                rs1,
+                rs2,
+                funct7: _,
+            } => format!("x{}, x{}, x{}", rd, rs1, rs2),
+            InstructionType::IInst {
+                rd,
+                funct3: _,
+                rs1,
+                imm,
+            } => format!("x{}, x{}, {}", rd, rs1, imm),
+            InstructionType::SInst {
+                rd,
+                funct3: _,
+                rs1,
+                rs2,
+                imm,
+            } => format!("x{}, x{}, {}(x{})", rd, rs1, imm, rs2),
+            InstructionType::BInst {
+                funct3: _,
+                rs1,
+                rs2,
+                imm,
+            } => format!("x{}, x{}. {}", rs1, rs2, imm),
+            InstructionType::UInst { rd, imm } => format!("x{}, {}", rd, imm),
+            InstructionType::JInst { rd, imm } => format!("x{}, {}", rd, imm),
+        };
+
+        String::from(format!("{} {}", instruction_name, instruction_params))
     }
 }
