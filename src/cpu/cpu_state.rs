@@ -1,6 +1,7 @@
 use crate::memaccess::Memory;
 
 use crate::opcodes::*;
+use crate::instruction::Instruction;
 
 /*
  * Represents a CPU state
