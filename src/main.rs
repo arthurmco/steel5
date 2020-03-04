@@ -554,6 +554,27 @@ impl Memory {
         }
     }
 
+    /// Write 4 bytes, 32 bits, to an address
+    pub fn write32(&mut self, addr: u32, data: u32) {
+        match self.find_memory_area_mut(addr) {
+            Some(area) => {
+                let offset = addr - area.start;
+
+                let bytes: [u32; 4] = [
+                    data & 0xff,
+                    (data >> 8) & 0xff,
+                    (data >> 16) & 0xff,
+                    (data >> 24) & 0xff,
+                ];
+
+                for i in [0, 1, 2, 3].iter() {
+                    self.write8(addr + i, bytes[*i as usize] as u8);
+                }
+            }
+            None => panic!("Cannot find suitable memory area for address {:x}", addr),
+        }
+    }
+
     fn find_memory_area_mut(&mut self, addr: u32) -> Option<&mut MemoryArea> {
         self.areas
             .iter_mut()
@@ -620,4 +641,7 @@ fn main() {
     println!("{:x}", memory.read32(0)); // needs to be 0x04030201
     println!("{:x}", memory.read32(4)); // needs to be 0x23222120
     println!("{:x}", memory.read8(8)); // needs to be 0x24
+
+    memory.write32(100, 0xfff28413);
+    println!("{:?}", Instruction::new(memory.read32(100))); //addi s0 t0 -1
 }
