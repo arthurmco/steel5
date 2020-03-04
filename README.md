@@ -15,6 +15,3 @@ Some useful links:
 ## Objectives
 
 The final objective is to run Linux and NetBSD. I think both have risc-v support.
-
-## About RISC-V
- - We will i
